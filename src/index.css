@@ -1,0 +1,39 @@
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    z-index: -1;
+    top:0;
+    left:0;
+}
+
+#ontop {
+    position: relative;
+   
+}
+
+#myButton {
+    margin: 0 auto;
+    display: block;
+    margin-top: 75vh;
+}
+
+
+.test {
+    scale: 1;
+    background-color: white;
+    font-weight: bold;
+    font-size: 20px;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 10px;
+    transition: ease-in-out 0.1s;
+}
+
+.test:hover { 
+    background-color: beige;
+    scale:1.06
+}
+.test:active {
+    scale:0.9;
+}
