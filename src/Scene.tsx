@@ -1,4 +1,5 @@
-import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { Canvas, extend, useFrame, useLoader, useThree } from "@react-three/fiber";
 import {
   Suspense,
   use,
@@ -17,13 +18,24 @@ import {
   Icosahedron,
   Float,
   PerspectiveCamera,
+  MeshDistortMaterial,
+  MeshReflectorMaterial,
+  Points,
+  PointMaterial,
+  Plane,
+  shaderMaterial,
 } from "@react-three/drei";
-import { Model } from "./components/Model2";
+import { TvModel } from "./components/Model2";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { glsl } from "three/tsl";
+import vShader from './shaders/vertex.glsl.ts'
+import fShader from './shaders/fragment.glsl.ts'
+
 
 function BackgroundColor() {
   const { scene } = useThree();
+  // eslint-disable-next-line react-hooks/immutability
   scene.background = new THREE.Color("darkgrey");
   return null;
 }
@@ -71,26 +83,38 @@ function AnimateCamera() {
 }
 
 interface ObjProps {
-  ref: React.RefObject<THREE.Mesh>;
+  status: boolean
 }
 
-function Primitive({ ref }: ObjProps) {
-  let i = 0.3;
-  let j = 2.5;
-  let r = Date.now() * 0.0005;
-  useFrame(({ clock }) => {
+function Primitive({ status }: ObjProps) {
+  const i = 0.3;
+  const j = 2.5;
+  const ref = useRef<THREE.Mesh>(null!);
+
+  const tl = gsap.timeline({repeat: -1})
+  
+
+  
+  useFrame(({clock}) => {
     if (ref.current!) {
       ref.current.rotation.x = clock.elapsedTime / 10;
       ref.current.rotation.y = clock.elapsedTime / 10;
       ref.current.rotation.z = clock.elapsedTime / 10;
+      if (status) {
+        gsap.fromTo( ref.current.position, {y: ref.current.position.y}, {y: 0, duration: 2})
+      }
+      else {
+        tl.to(ref.current.position, {y: -1, duration: 2})
+        .to(ref.current.position, {y: 1, duration: 2})
+
+
+      }
     }
   });
-
   return (
     <>
       <mesh ref={ref} position={[0, 1, 0]}>
         <icosahedronGeometry args={[9, 0]} />
-        <meshStandardMaterial color="tomato" />
         <Wireframe
           stroke={"white"}
           fillMix={1}
@@ -101,71 +125,30 @@ function Primitive({ ref }: ObjProps) {
           squeezeMax={j}
         ></Wireframe>
       </mesh>
+      
     </>
   );
 }
 
-function Floating() {
-  const obj = useRef<THREE.Mesh>(null!);
-  // <Float rotationIntensity={0} floatIntensity={2} floatingRange={[-1, 1]} />
-  //      <Float rotationIntensity={4} floatIntensity={0}></Float>
+function ShaderPlane() {
+  
 
-  const tl = gsap.timeline({
-    repeat: -1,
-  });
+  return (<>
 
-  useLayoutEffect(() => {
-    tl.to(obj.current.position, {
-      y: -1,
-      duration: 2,
-      ease: "power1.inOut",
-    }).to(obj.current.position, {
-      y: 1,
-      duration: 2,
-      ease: "power1.inOut",
-    });
-  });
+    <mesh rotation={[-Math.PI / 2,0,0]}>
+      <planeGeometry args={[20,20,100,100]}/>
+      <shaderMaterial vertexShader={vShader} fragmentShader={fShader} wireframe/>
 
-  return (
-    <>
-      <Primitive ref={obj} />
-    </>
-  );
+    </mesh>
+  
+  </>)
 }
 
-interface StaticProps {
-  isStatic: boolean;
-}
 
-function Static({ isStatic }: StaticProps) {
-  const obj = useRef<THREE.Mesh>(null!);
-  const tl = gsap.timeline({ repeat: -1 });
 
-  useLayoutEffect(() => {
-    tl.to(obj.current.position, {
-      y: -1,
-      duration: 2,
-      ease: "power1.inOut",
-    }).to(obj.current.position, {
-      y: 1,
-      duration: 2,
-      ease: "power1.inOut",
-    });
-    if (isStatic) {
-      tl.pause();
-    }
-  });
-
-  return (
-    <>
-      <Primitive ref={obj} />
-    </>
-  );
-}
 
 function Scene() {
   const [animate, setAnimate] = useState(false);
-  const ref = useRef<THREE.Mesh>(null);
   return (
     <>
       <div id="ontop">
@@ -180,20 +163,15 @@ function Scene() {
       </div>
       <div id="canvas-container">
         <Canvas camera={{ position: [9, 9, 9] }}>
-          {animate ? <AnimateCamera /> : <ReverseAnimateCamera />}
           <ambientLight intensity={10} />
-          <Float
-            rotationIntensity={0}
-            floatingRange={[-1, 0.5]}
-            floatIntensity={2}
-          >
-            <Primitive ref={ref}></Primitive>
-          </Float>
           <OrbitControls
-            enablePan={false}
-            enableZoom={false}
-            enableRotate={false}
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
           />
+
+          <ShaderPlane />
+
           <BackgroundColor />
           <gridHelper args={[30, 30, 30]}></gridHelper>
           <axesHelper args={[5]}></axesHelper>
